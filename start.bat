@@ -48,10 +48,13 @@ exit /B
 setlocal & cd /d %~dp0
 if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 
-::::::::::::::::::::::::::::
-::START
-::::::::::::::::::::::::::::
-REM Run shell as admin (example) - put here code as you like
-start powershell.exe -File "C:\wsl_autostart\wsl_hosts.ps1"
+ECHO.
+ECHO **************************************
+ECHO        START WSL2 HOST SCRIPT
+ECHO **************************************
+ECHO.
+ECHO Await, proccessing...
 
+call powershell.exe -File "C:\wsl_autostart\wsl_hosts.ps1"
+pause
 :end
