@@ -4,31 +4,54 @@ $getDate = (Get-Date -Format d).replace("/","-");
 $getTime = (Get-Date -Format T);
 $outPutFirewall = @();
 $outFileLog = @();
-$wslReg = REG QUERY "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe" | findstr "wsl2host.exe";
-$foundReg = $wslReg -match "wsl2host.exe";
 
 #[REG KEY]
+$foundReg = Invoke-Expression "REG QUERY 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' | findstr 'wsl2host.exe'" -EV Err -EA SilentlyContinue;
+
 if (!$foundReg) {
-	REG ADD "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe" /d "C:\wsl_autostart\start.bat";
-	REG ADD "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe" /v "Path" /d "C:\wsl_autostart";
+	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /d 'C:\wsl_autostart\start.bat'" | Out-Null;
+	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /v 'Path' /d 'C:\wsl_autostart'" | Out-Null;
+}
+
+#[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
+$foundEnv = @(
+	[pscustomobject]@{
+		value = bash.exe -c "grep 'REACT_NATIVE_PACKAGER_HOSTNAME' ~/.bashrc";
+		path = "~/.bashrc";
+	};	
+	[pscustomobject]@{
+		value = bash.exe -c "grep 'REACT_NATIVE_PACKAGER_HOSTNAME' ~/.zshrc";
+		path = "~/.zshrc";
+	};
+);
+
+
+foreach ( $item in $foundEnv ) {
+	$path = $item.path;		
+	if ([string]::IsNullOrEmpty($item.value)) {
+		#$localAddress = '$localAdress';
+		bash.exe -c "echo '\n# Set env for EXPO \nlocalAddress=`awk ''NR==4 {print ''$3''}'' /mnt/c/wsl_autostart/*.log | sed ''s/\\r//g''` \nexport REACT_NATIVE_PACKAGER_HOSTNAME=$localAddress' >> $path";
+	}
 }
 
 #[STATIC IP]
-for ($i = 0; $i -lt $interfaceName.Length; $i++) {
-$tempAddress = $interfaceName[$i];
-$localAddress = Invoke-Expression "netsh interface ipv4 show ipaddresses $tempAddress normal | Select-String 'infinite'";
+foreach ( $tempAddress in $interfaceName ) {
+	$localAddress = Invoke-Expression "netsh interface ipv4 show ipaddresses $tempAddress normal | Select-String 'infinite'";
+
 	if (![string]::IsNullOrEmpty($localAddress)) {
-		$foundLocalAddress = $localAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}";
-	if ($foundLocalAddress) {
-			$localAddress = $matches[0];
-		$localAddress | out-file -encoding "ASCII" "C:\wsl_autostart\ipAddress.txt";
-		} else {
-			Write-Output "The Script Exited, the ip address of WSL 2 cannot be found";
-			exit;
-		}
-	$outPutInterface = @([pscustomobject]@{INTERFACE=$tempAddress; LOCAL_ADDRESS=$localAddress; STATUS="OK"; DATE = $getDate; TIME = $getTime});		
-	break;
-	}
+		$foundLocalAddress = $localAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}";		
+		break;
+	}	
+}
+
+if ($foundLocalAddress) {
+	$localAddress = $matches[0];
+	$localAddress | out-file -encoding "ASCII" "C:\wsl_autostart\ipAddress.txt";
+	$outPutInterface = @([pscustomobject]@{INTERFACE=$tempAddress; LOCAL_ADDRESS=$localAddress; STATUS="OK"; DATE = $getDate; TIME = $getTime});
+
+	} else {
+	Write-Output "The Script Exited, the IP address of Windows cannot be found";
+	exit;
 }
 
 #[REMOTE IP]
@@ -37,8 +60,8 @@ $foundRemoteAddress = $remoteAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
 
 if ($foundRemoteAddress) {
 	$remoteAddress = $matches[0];
-} else{
-	Write-Output "The Script Exited, the ip address of WSL 2 cannot be found";
+} else {
+	Write-Output "The Script Exited, the ip address of WSL2 cannot be found";	
 	exit;
 }
 
@@ -58,15 +81,16 @@ $portsTCP = $firewall[0].ports -join ",";
 $portsUDP = $firewall[1].ports -join "," ;
 
 #Adding Exception Rules for inbound and outbound Rules
-for ($i = 0; $i -lt $firewall.Length; $i++) {
-	$nameFirewall = $firewall[$i].name;
+foreach ( $item in $firewall) {
+	$nameFirewall = $item.name;
+	$typeFirewall = $item.type;
 	
-	if ((!(Get-NetFireWallRule -DisplayName $firewall[$i].name -EV Err -EA SilentlyContinue)) -and ($firewall[$i].type -eq "TCP")) {      
+	if ((!(Get-NetFireWallRule -DisplayName $nameFirewall -EV Err -EA SilentlyContinue)) -and ($typeFirewall -eq "TCP")) {      
 		Invoke-Expression "New-NetFireWallRule -DisplayName '$nameFirewall' -Direction Outbound -LocalPort $portsTCP -Action Allow -Protocol TCP";
 		Invoke-Expression "New-NetFireWallRule -DisplayName '$nameFirewall' -Direction Inbound -LocalPort $portsTCP -Action Allow -Protocol TCP";    
 		$outPutFirewall += @([pscustomobject]@{FIREWALL_NAME=$nameFirewall; STATUS="CREATED"; DATE = $getDate; TIME = $getTime});
 
-	} elseif ((!(Get-NetFireWallRule -DisplayName $firewall[$i].name -EV Err -EA SilentlyContinue)) -and ($firewall[$i].type -eq "UDP")) {    
+	} elseif ((!(Get-NetFireWallRule -DisplayName $nameFirewall -EV Err -EA SilentlyContinue)) -and ($typeFirewall -eq "UDP")) {    
 		Invoke-Expression "New-NetFireWallRule -DisplayName '$nameFirewall' -Direction Outbound -LocalPort $portsUDP -Action Allow -Protocol UDP";
 		Invoke-Expression "New-NetFireWallRule -DisplayName '$nameFirewall' -Direction Inbound -LocalPort $portsUDP -Action Allow -Protocol UDP";
 		$outPutFirewall += @([pscustomobject]@{FIREWALL_NAME=$nameFirewall; STATUS="CREATED"; DATE = $getDate; TIME = $getTime});
@@ -77,15 +101,11 @@ for ($i = 0; $i -lt $firewall.Length; $i++) {
 }
 
 #[REDIRECTING PORTS]
-for ($i = 0; $i -lt $firewall[0].ports.length; $i++) {
-	$port = $firewall[0].ports[$i];	
+foreach ( $port in $firewall[0].ports) {		
 	Invoke-Expression "netsh interface portproxy delete v4tov4 listenport=$port listenaddress=$localAddress" | Out-Null;
 	Invoke-Expression "netsh interface portproxy add v4tov4 listenport=$port listenaddress=$localAddress connectport=$port connectaddress=$remoteAddress" | Out-Null;	
 	$outFileLog += @([pscustomobject]@{PORT= $port; LOCAL_ADDRESS = $localAddress; REMOTE_ADDRESS = $remoteAddress; DATE = $getDate; TIME = $getTime});
 }
-
-#[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
-
 
 #[LOG]
 Remove-Item "C:\wsl_autostart\*.log" -EV Err -EA SilentlyContinue;
@@ -97,5 +117,5 @@ $outPutFirewall | Format-Table -Property STATUS,FIREWALL_NAME,DATE,TIME -AutoSiz
 $outFileLog | Format-Table -Property PORT,LOCAL_ADDRESS,REMOTE_ADDRESS,DATE,TIME -AutoSize | out-file -encoding "ASCII" $pathLog -append;
 
 Write-Output $outPutInterface | Format-Table -Property STATUS,INTERFACE,LOCAL_ADDRESS,DATE,TIME -AutoSize;
-Write-Output $outPutInterface | Format-Table -Property STATUS,INTERFACE,LOCAL_ADDRESS,DATE,TIME -AutoSize;
+Write-Output $outPutFirewall | Format-Table -Property STATUS,FIREWALL_NAME,DATE,TIME -AutoSize;
 Write-Output $outFileLog | Format-Table -Property PORT,LOCAL_ADDRESS,REMOTE_ADDRESS,DATE,TIME -AutoSize;
