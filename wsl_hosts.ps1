@@ -5,7 +5,7 @@ $getTime = (Get-Date -Format T);
 $outPutFirewall = @();
 $outFileLog = @();
 
-#[REG KEY]
+#[REG KEY IN WINDOWS]
 $foundReg = Invoke-Expression "REG QUERY 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' | findstr 'wsl2host.exe'" -EV Err -EA SilentlyContinue;
 
 if (!$foundReg) {
@@ -25,16 +25,21 @@ $foundEnv = @(
 	};
 );
 
-
 foreach ( $item in $foundEnv ) {
 	$path = $item.path;		
-	if ([string]::IsNullOrEmpty($item.value)) {
-		#$localAddress = '$localAdress';
-		bash.exe -c "echo '\n# Set env for EXPO \nlocalAddress=`awk ''NR==4 {print ''$3''}'' /mnt/c/wsl_autostart/*.log | sed ''s/\\r//g''` \nexport REACT_NATIVE_PACKAGER_HOSTNAME=$localAddress' >> $path";
+	if ([string]::IsNullOrEmpty($item.value)) {		
+		if (![string]::IsNullOrEmpty((bash.exe -c "ls -l $path | grep 'root'"))) {
+			$userWsl = bash.exe -c "whoami";
+			bash.exe -c "sudo chown $userWsl`:$userWsl $path"
+		}
+		$keepAddress = "`n# Set env for EXPO `nlocalAddress=``awk 'NR==4 {print `$3}' /mnt/c/wsl_autostart/*.log | sed 's/\\r//g'`` `nexport REACT_NATIVE_PACKAGER_HOSTNAME=`$localAddress` ";
+		$keepAddress | out-file -encoding "ASCII" "C:\wsl_autostart\temp.txt";
+		bash.exe -c "cat /mnt/c/wsl_autostart/temp.txt >> $path ";
+		Remove-Item "C:\wsl_autostart\temp.txt" -EV Err -EA SilentlyContinue;
 	}
 }
 
-#[STATIC IP]
+#[STATIC/DHCP IP - WINDOWS]
 foreach ( $tempAddress in $interfaceName ) {
 	$localAddress = Invoke-Expression "netsh interface ipv4 show ipaddresses $tempAddress normal | Select-String 'infinite'";
 
@@ -45,8 +50,7 @@ foreach ( $tempAddress in $interfaceName ) {
 }
 
 if ($foundLocalAddress) {
-	$localAddress = $matches[0];
-	$localAddress | out-file -encoding "ASCII" "C:\wsl_autostart\ipAddress.txt";
+	$localAddress = $matches[0];	
 	$outPutInterface = @([pscustomobject]@{INTERFACE=$tempAddress; LOCAL_ADDRESS=$localAddress; STATUS="OK"; DATE = $getDate; TIME = $getTime});
 
 	} else {
@@ -54,7 +58,7 @@ if ($foundLocalAddress) {
 	exit;
 }
 
-#[REMOTE IP]
+#[REMOTE IP - WSL2]
 $remoteAddress = bash.exe -c "ifconfig eth0 | grep 'inet '"
 $foundRemoteAddress = $remoteAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}";
 
@@ -69,11 +73,11 @@ if ($foundRemoteAddress) {
 $firewall = @(
 	[pscustomobject]@{
 		type="TCP"; 
-		name="WSL 2 Firewall Unlock TCP"; 
+		name="WSL2 Firewall Unlock TCP"; 
 		ports=@(19000,19001,19002,19003,19004,19005)}
 	[pscustomobject]@{
 		type="UDP"; 
-		name="WSL 2 Firewall Unlock UDP"; 
+		name="WSL2 Firewall Unlock UDP"; 
 		ports=@(53)}
 );
 
