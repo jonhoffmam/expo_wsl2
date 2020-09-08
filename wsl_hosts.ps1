@@ -32,7 +32,7 @@ foreach ( $item in $foundEnv ) {
 			$userWsl = bash.exe -c "whoami";
 			bash.exe -c "sudo chown $userWsl`:$userWsl $path"
 		}
-		$keepAddress = "`n# Set env for EXPO `nlocalAddress=``awk 'NR==4 {print `$3}' /mnt/c/wsl_autostart/*.log | sed 's/\\r//g'`` `nexport REACT_NATIVE_PACKAGER_HOSTNAME=`$localAddress` ";
+		$keepAddress = "`n# Set env for EXPO `nlocalAddress=``awk 'NR==4 {print `$3}' /mnt/c/wsl_autostart/*.log | sed 's/\\r//g'`` `nexport REACT_NATIVE_PACKAGER_HOSTNAME=`$localAddress` `n# End";
 		$keepAddress | out-file -encoding "ASCII" "C:\wsl_autostart\temp.txt";
 		bash.exe -c "cat /mnt/c/wsl_autostart/temp.txt >> $path ";
 		Remove-Item "C:\wsl_autostart\temp.txt" -EV Err -EA SilentlyContinue;
