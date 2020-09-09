@@ -5,12 +5,25 @@ $getTime = (Get-Date -Format T);
 $outPutFirewall = @();
 $outFileLog = @();
 
-#[REG KEY IN WINDOWS]
+#[REG KEY ON WINDOWS]
 $foundReg = Invoke-Expression "REG QUERY 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' | findstr 'wsl2host.exe'" -EV Err -EA SilentlyContinue;
 
 if (!$foundReg) {
+	Write-Output "'wsl2host' key registering on Windows...`n";
 	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /d 'C:\wsl_autostart\start.bat'" | Out-Null;
 	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /v 'Path' /d 'C:\wsl_autostart'" | Out-Null;
+} else {
+	Write-Output "'wsl2host' key already exist...`n"
+}
+
+#[SHEDULE TASK ON WINDOWS]
+$foundTask = Invoke-Expression "SCHTASKS /QUERY /TN 'WSL2HOST' | findstr 'WSL'";
+
+if (!$foundTask) {
+	Write-Output "Schedule task creating...`n";
+	Invoke-Expression "SCHTASKS /CREATE /TN 'WSL2HOST' /SC ONLOGON /TR 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass C:\wsl_autostart\wsl_hosts.ps1'" | Out-Null;
+} else {
+	Write-Output "Schedule task already exist..."
 }
 
 #[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
