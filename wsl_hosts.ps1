@@ -22,14 +22,14 @@ foreach ($name in $interface) {
 }
 
 #[REG KEY ON WINDOWS]
-$foundReg = Invoke-Expression "REG QUERY 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' | findstr 'wsl2host.exe'" -EV Err -EA SilentlyContinue;
+$foundReg = Invoke-Expression "REG QUERY 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' | findstr 'wsl2host.exe'";
 
 if (!$foundReg) {
 	Write-Output "'wsl2host' key registering on Windows...`n";
-	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /d 'C:\wsl_autostart\start.bat'" | Out-Null;
-	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /v 'Path' /d 'C:\wsl_autostart'" | Out-Null;
+	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /d '$currentPathWin\start.bat'" | Out-Null;
+	Invoke-Expression "REG ADD 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' /v 'Path' /d '$currentPathWin'" | Out-Null;
 } else {
-	Write-Output "'wsl2host' key already exist...`n"
+	Write-Output "'wsl2host' key already exist...`n";
 }
 
 #[SHEDULE TASK ON WINDOWS]
@@ -37,9 +37,9 @@ $foundTask = Invoke-Expression "SCHTASKS /QUERY /TN 'WSL2HOST' | findstr 'WSL'";
 
 if (!$foundTask) {
 	Write-Output "Schedule task creating...`n";
-	Invoke-Expression "SCHTASKS /CREATE /TN 'WSL2HOST' /SC ONLOGON /TR 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass C:\wsl_autostart\wsl_hosts.ps1'" | Out-Null;
+	Invoke-Expression "SCHTASKS /CREATE /TN 'WSL2HOST' /SC ONLOGON /TR 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass $currentPathWin\wsl_hosts.ps1'" | Out-Null;
 } else {
-	Write-Output "Schedule task already exist..."
+	Write-Output "Schedule task already exist...";
 }
 
 #[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
@@ -61,10 +61,10 @@ foreach ( $item in $foundEnv ) {
 			$userWsl = bash.exe -c "whoami";
 			bash.exe -c "sudo chown $userWsl`:$userWsl $path"
 		}
-		$keepAddress = "`n# Set env for EXPO `nlocalAddress=``awk 'NR==4 {print `$3}' /mnt/c/wsl_autostart/*.log | sed 's/\\r//g'`` `nexport REACT_NATIVE_PACKAGER_HOSTNAME=`$localAddress` `n# End";
-		$keepAddress | out-file -encoding "ASCII" "C:\wsl_autostart\temp.txt";
-		bash.exe -c "cat /mnt/c/wsl_autostart/temp.txt >> $path ";
-		Remove-Item "C:\wsl_autostart\temp.txt" -EV Err -EA SilentlyContinue;
+		$keepAddress = "`n# Set env for EXPO `nlocalAddress=``awk 'NR==4 {print `$3}' $currentPathWsl/*.log | sed 's/\\r//g'`` `nexport REACT_NATIVE_PACKAGER_HOSTNAME=`$localAddress` `n# End";
+		$keepAddress | out-file -encoding "ASCII" "$currentPathWin\temp.txt";
+		bash.exe -c "cat $currentPathWsl/temp.txt >> $path ";
+		Remove-Item "$currentPathWin\temp.txt" -EV Err -EA SilentlyContinue;
 	}
 }
 
@@ -141,9 +141,9 @@ foreach ( $port in $firewall[0].ports) {
 }
 
 #[LOG]
-Remove-Item "C:\wsl_autostart\*.log" -EV Err -EA SilentlyContinue;
+Remove-Item "$currentPathWin\*.log" -EV Err -EA SilentlyContinue;
 $timeStamp = (Get-Date -Format d).replace("/","_");
-$pathLog = "C:\wsl_autostart\$timeStamp.log";
+$pathLog = "$currentPathWin\$timeStamp.log";
 
 $outPutInterface | Format-Table -Property STATUS,INTERFACE,LOCAL_ADDRESS,DATE,TIME -AutoSize | out-file -encoding "ASCII" $pathLog -append;
 $outPutFirewall | Format-Table -Property STATUS,FIREWALL_NAME,DATE,TIME -AutoSize | out-file -encoding "ASCII" $pathLog -append;
