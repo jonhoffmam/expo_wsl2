@@ -1,9 +1,25 @@
-#set here the interface names of IP address that's use on Windows
-$interfaceName = @("Ethernet","Wi-fi");
+$currentPathWin = (Get-Location).Path;
+$diskDrive = $currentPathWin.Substring(0,1);
+$currentPathWsl = $currentPathWin.Replace("$($diskDrive):\","/mnt/$($diskDrive.ToLower())/").Replace("\","/");
 $getDate = (Get-Date -Format d).replace("/","-");
 $getTime = (Get-Date -Format T);
 $outPutFirewall = @();
 $outFileLog = @();
+
+#[GET THE INTERFACE NAME]
+$interfaceName = @();
+$interface = Invoke-Expression "netsh interface ipv4 show config | Select-String '`"'";
+$interface = "$interface".split('"');
+
+$i = 0;
+foreach ($name in $interface) { 
+	if ($i%2 -eq 1 -and 
+			!$name.contains("vEthernet") -and 
+			!$name.contains("Loopback")) {		
+		$interfaceName += $name;
+	} 
+	$i += 1;
+}
 
 #[REG KEY ON WINDOWS]
 $foundReg = Invoke-Expression "REG QUERY 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe' | findstr 'wsl2host.exe'" -EV Err -EA SilentlyContinue;
