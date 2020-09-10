@@ -55,6 +55,6 @@ ECHO **************************************
 ECHO.
 ECHO Await, proccessing...
 
-call powershell.exe -File "C:\wsl_autostart\wsl_hosts.ps1"
+call powershell.exe -File ".\wsl_hosts.ps1"
 pause
 :end
