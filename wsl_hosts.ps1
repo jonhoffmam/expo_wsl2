@@ -15,7 +15,8 @@ $i = 0;
 foreach ($name in $interface) { 
 	if ($i%2 -eq 1 -and 
 			!$name.contains("vEthernet") -and 
-			!$name.contains("Loopback")) {		
+			!$name.contains("Loopback") -and 
+			!$name.contains("VirtualBox")) {		
 		$interfaceName += $name;
 	} 
 	$i += 1;
