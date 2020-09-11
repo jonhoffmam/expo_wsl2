@@ -1,12 +1,40 @@
 # WSL2 HOST
 
-**O Script se encarrega de:**
+Esse script foi desenvolvido com o intuito de possibilitar e facilitar o uso da plataforma [**Expo**](https://expo.io/) com o **WSL2**.
 
-- Buscar o IP da interface a ser utilizada (ex.: Ethernet, Wi-Fi) na máquina local (Windows) e da máquina remota (WSL2);
-- Abrir as portas necessárias (setadas no arquivo .ps1) no firewall do Windows;
-- Fazer o direcionamento das portas entre endereço local (Windows) e remoto (WSL2);
-- Define um arquivo chamado ipAddress.txt com o IP da máquina local (Windows) para a máquina remota (WSL2) ser capaz de ler e definir a variável de ambiente ```REACT_NATIVE_PACKAGER_HOSTNAME```;
+**O que o script faz**❔
 
-**Ainda precisa ser automatizado:**
+- Busca o IP da interface a ser utilizada (ex.: Ethernet, Wi-Fi) na máquina local (Windows) e na máquina remota (WSL2);
+- Abre as portas **19000,19001,19002,19003,19004,19005** no firewall do Windows;
+- Faz o direcionamento entre endereço IP local (Windows) e endereço IP remoto (WSL2);
+- Insere a variável de ambiente **```REACT_NATIVE_PACKAGER_HOSTNAME```** nos arquivos **```.bashrc```** e **```.zshrc```** caso exista;
+- A variável de ambiente **```REACT_NATIVE_PACKAGER_HOSTNAME```** recebe automaticamente o endereço IP da máquina local (Windows);
+- Define uma chave no registro do Windows para facilitar a execução do script através do ***Executar*** ```(Windows + "R")``` com o comando **```wsl2host```**;
+- Cria uma tarefa agendada no Windows para executar o script a cada logon.
+  
+---
 
-- Definição da variável de ambiente ```REACT_NATIVE_PACKAGER_HOSTNAME``` no arquivo ~/.bashrc (no caso foi definido manualmente no arquivo ~/.zshrc)
+**Como utilizar**❔  
+
+- Realizar o download deste repositório ou caso tenha o **Git** instalado:
+  
+```sh
+> git clone https://github.com/jonhoffmam/wsl2_host.git
+```
+
+- Executar o arquivo **start.bat** na primeira execução do script
+
+<p
+align="center">
+<img
+src="https://user-images.githubusercontent.com/46982925/92862312-eccfa600-f3d0-11ea-9cfb-1d1bc6f83245.png"
+/>
+</p>
+
+- Posteriormente é possível executar o script com o comando **```wsl2host```** através do ***Executar*** ```(Windows + "R")```
+
+<p
+align="center">
+<img
+src="https://user-images.githubusercontent.com/46982925/92856562-f43f8100-f3c9-11ea-8f7f-e915d1b788ca.png" />
+</p>
