@@ -68,18 +68,18 @@ if (!$foundTask) {
 #[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
 $foundEnv = @(
 	[PSCustomObject]@{
-		value = bash.exe -c "grep 'REACT_NATIVE_PACKAGER_HOSTNAME' ~/.bashrc";
+		value = bash.exe -c "grep 'REACT_NATIVE_PACKAGER_HOSTNAME' ~/.bashrc 2> /dev/null";
 		path = "~/.bashrc";
 	};	
 	[PSCustomObject]@{
-		value = bash.exe -c "grep 'REACT_NATIVE_PACKAGER_HOSTNAME' ~/.zshrc";
+		value = bash.exe -c "grep 'REACT_NATIVE_PACKAGER_HOSTNAME' ~/.zshrc 2> /dev/null";
 		path = "~/.zshrc";
 	};
 );
 
 foreach ( $item in $foundEnv ) {
 	$path = $item.path;		
-	if ([string]::IsNullOrEmpty($item.value)) {		
+	if ([string]::IsNullOrEmpty($item.value) -and ![string]::IsNullOrEmpty((bash.exe -c "ls -l $path 2> /dev/null"))) {		
 		if (![string]::IsNullOrEmpty((bash.exe -c "ls -l $path | grep 'root'"))) {
 			$userWsl = bash.exe -c "whoami";
 			bash.exe -c "sudo chown $userWsl`:$userWsl $path"
