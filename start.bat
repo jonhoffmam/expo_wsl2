@@ -49,9 +49,9 @@ setlocal & cd /d %~dp0
 if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 
 ECHO.
-ECHO **************************************
-ECHO        START WSL2 HOST SCRIPT
-ECHO **************************************
+ECHO *********************************************************
+ECHO                  START WSL2 HOST SCRIPT
+ECHO *********************************************************
 ECHO.
 ECHO Await, proccessing...
 
