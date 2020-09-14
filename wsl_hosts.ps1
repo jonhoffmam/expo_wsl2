@@ -1,3 +1,8 @@
+Write-Output "`n*********************************************************"
+Write-Output "                  WSL2 HOST - CONFIGURING									 "
+Write-Output "                 DON'T CLOSE THE WINDOW!!!								 "
+Write-Output "*********************************************************`n"
+
 $getDate = (Get-Date -Format d).replace("/","-");
 $getTime = (Get-Date -Format T);
 $timeStamp = (Get-Date -Format d).replace("/","_");
@@ -18,51 +23,35 @@ $outPutConfigPath = [PSCustomObject]@{
 };
 
 if (!(Test-Path $configFolderPath)) {
-	Write-Output "Creating config folder...`n"
+	Write-Output "--> Creating config folder...`n"
 	mkdir $configFolderPath | Out-Null;
 }
 
 Remove-Item "$configFolderPath\*.config.log" -EV Err -EA SilentlyContinue;
 
-#[GET THE INTERFACE NAME]
-$interfaceName = @();
-$interface = Invoke-Expression "netsh interface ipv4 show config | Select-String '`"'";
-$interface = "$interface".split('"');
-
-$i = 0;
-foreach ($name in $interface) { 
-	if ($i%2 -eq 1 -and 
-			!$name.contains("vEthernet") -and 
-			!$name.contains("Loopback") -and 
-			!$name.contains("VirtualBox")) {		
-		$interfaceName += $name;
-	} 
-	$i += 1;
-}
-
 #[REG KEY ON WINDOWS]
 $registryPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\wsl2host.exe';
 
 if (!(Test-Path $registryPath)) {
-	Write-Output "'wsl2host' key registering on Windows...`n";	
+	Write-Output "--> 'wsl2host' key registering on Windows...`n";	
 	New-Item -Path $registryPath -Value "$currentPathWin\start.bat" -Force | Out-Null;
 	New-ItemProperty -Path $registryPath -Name 'Path' -Value $currentPathWin -PropertyType string -Force | Out-Null;	
 } else {
-	Write-Output "'wsl2host' key already exist...`n";
+	Write-Output "--> 'wsl2host' key already exist...`n";
 }
 
 #[SHEDULE TASK ON WINDOWS]
 $foundTask = Get-ScheduledTask -TaskName 'WSL2HOST' -EA SilentlyContinue;
 
 if (!$foundTask) {
-	Write-Output "Schedule task creating...`n";
+	Write-Output "--> Schedule task creating...`n";
 	$taskAction = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "-ExecutionPolicy Bypass $currentPathWin\wsl_hosts.ps1";
 	$taskTrigger = New-ScheduledTaskTrigger -AtLogon;
 	$taskPrincipal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -RunLevel Highest;	
 	$task = New-ScheduledTask -Action $taskAction -Principal $taskPrincipal -Trigger $taskTrigger;
 	Register-ScheduledTask -TaskName "WSL2HOST" -InputObject $task | Out-Null;	
 } else {
-	Write-Output "Schedule task already exist...";
+	Write-Output "--> Schedule task already exist...";
 }
 
 #[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
@@ -92,19 +81,25 @@ foreach ( $item in $foundEnv ) {
 }
 
 #[STATIC/DHCP IP - WINDOWS]
-foreach ( $tempAddress in $interfaceName ) {
-	$localAddress = Invoke-Expression "netsh interface ipv4 show ipaddresses $tempAddress normal | Select-String 'infinite'";
+$localAddress = @();
 
-	if (![string]::IsNullOrEmpty($localAddress)) {
-		$foundLocalAddress = $localAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}";		
-		break;
-	}	
+foreach ($ipaddress in (Get-NetAdapter | 
+												Where-Object InterfaceDescription -NotMatch "Hyper-V" | 
+												Where-Object InterfaceDescription -NotMatch "VirtualBox" | 
+												Where-Object InterfaceDescription -NotMatch "Virtual" | 
+												Where-Object InterfaceDescription -NotMatch "VMware" | 
+												Where-Object InterfaceDescription -NotMatch "VMnet" | 
+												Where-Object Status -eq "Up" | Get-NetIPAddress |
+												Where-Object AddressFamily -eq IPv4 | Sort-Object InterfaceIndex)) { 
+		$localAddress += $ipaddress.IPAddress;
+		$interfaceName = $ipaddress.InterfaceAlias;
 }
 
-if ($foundLocalAddress) {
-	$localAddress = $matches[0];	
+$localAddress = $localAddress[0];
+
+if (![string]::IsNullOrEmpty($localAddress)) {	
 	$outPutInterface = @([PSCustomObject]@{
-		INTERFACE = $tempAddress;
+		INTERFACE = $interfaceName;
 		LOCAL_ADDRESS = $localAddress;
 		STATUS = "OK";
 		DATE = $getDate;
@@ -112,7 +107,7 @@ if ($foundLocalAddress) {
 	});
 
 	} else {
-	Write-Output "The Script Exited, the IP address of Windows cannot be found";
+	Write-Output "--> The Script Exited, the IP address of Windows cannot be found";
 	exit;
 }
 
@@ -123,7 +118,7 @@ $foundRemoteAddress = $remoteAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
 if ($foundRemoteAddress) {
 	$remoteAddress = $matches[0];
 } else {
-	Write-Output "The Script Exited, the ip address of WSL2 cannot be found";	
+	Write-Output "--> The Script Exited, the ip address of WSL2 cannot be found";	
 	exit;
 }
 
