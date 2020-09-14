@@ -11,6 +11,11 @@ Esse script foi desenvolvido com o intuito de possibilitar e facilitar o uso da 
 - A variável de ambiente **```REACT_NATIVE_PACKAGER_HOSTNAME```** recebe automaticamente o endereço IP da máquina local (Windows);
 - Define uma chave no registro do Windows para facilitar a execução do script através do ***Executar*** ```(Windows + "R")``` com o comando **```wsl2host```**;
 - Cria uma tarefa agendada no Windows para executar o script a cada logon.
+
+**Importante**❗❗  
+
+- O script é capaz de buscar o endereço IP local (Windows) das interfaces existentes em uso ignorando endereços de máquinas virtuais como VirtualBox e VMware, porém caso exista alguma interface de rede desconhecida ou fora do comum é aconselhável desabilitar para que não ocorra nenhum problema na seleção do IP local a ser utilizado, ou então conferir no output da execução do script - log - se o endereço IP e interface selecionados estão corretos;
+- Caso esteja utilizando a conexão Wi-Fi e Ethernet simultaneamente será retornado o primeiro endereço IP ordenado pelo ```InterfaceIndex```.
   
 ---
 
