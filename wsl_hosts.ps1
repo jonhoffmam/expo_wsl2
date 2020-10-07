@@ -18,6 +18,8 @@ if (Test-Path "$configFolderPath\*.log") {
 
 $diskDrive = $configFolderPath.Substring(0,1);
 $configFolderPathWsl = $configFolderPath.Replace("$($diskDrive):\","/mnt/$($diskDrive.ToLower())/").Replace("\","/");
+# Escape spaces in the path. There may be spaces in user names unfortunately.
+$configFolderPathWsl = $configFolderPathWsl.Replace(" ","\ ");
 $outPutConfigPath = [PSCustomObject]@{
 	SCRIPT_PATH = $currentPathWin;
 };
