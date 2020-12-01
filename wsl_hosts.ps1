@@ -53,7 +53,7 @@ if (!$foundTask) {
 	$task = New-ScheduledTask -Action $taskAction -Principal $taskPrincipal -Trigger $taskTrigger;
 	Register-ScheduledTask -TaskName "WSL2HOST" -InputObject $task | Out-Null;	
 } else {
-	Write-Output "--> Schedule task already exist...";
+	Write-Output "--> Schedule task already exist...`n";
 }
 
 #[INSERT env REACT_NATIVE_PACKAGER_HOSTNAME IN .bashrc AND .zshrc]
@@ -114,6 +114,13 @@ if (![string]::IsNullOrEmpty($localAddress)) {
 }
 
 #[REMOTE IP - WSL2]
+$netTools = bash.exe -c "dpkg -l | grep 'net-tools'";
+
+if ([string]::IsNullOrEmpty($netTools)) {
+    Write-Output "--> The net-tools package is required to proceed, continue to install ...";
+    bash.exe -c "sudo apt-get install net-tools -y";
+}
+
 $remoteAddress = bash.exe -c "ifconfig eth0 | grep 'inet '"
 $foundRemoteAddress = $remoteAddress -match "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}";
 
